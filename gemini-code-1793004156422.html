@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>빠박 스네이크 v35.6 (로컬 클라우드 연동판)</title>
+    
+    <!-- 🐍 앱 아이콘 & 파비콘 완벽 호환 설정 -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a12'/><rect x='10' y='10' width='80' height='80' rx='15' fill='none' stroke='%2300ff88' stroke-width='4'/><rect x='30' y='30' width='18' height='18' rx='4' fill='%2381C784'/><rect x='52' y='30' width='18' height='18' rx='4' fill='%234CAF50'/><rect x='52' y='52' width='18' height='18' rx='4' fill='%234CAF50'/><rect x='30' y='52' width='18' height='18' rx='4' fill='%23FF5252'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a12'/><rect x='10' y='10' width='80' height='80' rx='15' fill='none' stroke='%2300ff88' stroke-width='4'/><rect x='30' y='30' width='18' height='18' rx='4' fill='%2381C784'/><rect x='52' y='30' width='18' height='18' rx='4' fill='%234CAF50'/><rect x='52' y='52' width='18' height='18' rx='4' fill='%234CAF50'/><rect x='30' y='52' width='18' height='18' rx='4' fill='%23FF5252'/></svg>">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background: #0a0a12; 
+            color: #fff; 
+            font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 10px; 
+        }
+        .header { 
+            width: 100%; 
+            max-width: 360px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 10px; 
+        }
+        .title { 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #00ff88; 
+            text-shadow: 0 0 8px rgba(0,255,136,0.6); 
+        }
+        .user-badge { 
+            background: rgba(30, 30, 45, 0.8); 
+            padding: 6px 12px; 
+            border-radius: 15px; 
+            font-size: 12px; 
+            border: 1px solid #4CAF50; 
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .canvas-container { 
+            position: relative; 
+            width: 320px; 
+            height: 320px; 
+            border: 2px solid #00ff88; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            background: #000; 
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.25);
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+        .overlay { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(10, 10, 18, 0.95); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 8px; 
+            z-index: 10; 
+        }
+        .countdown-overlay { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.7); 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 20; 
+        }
+        .countdown-text { 
+            font-size: 65px; 
+            font-weight: 900; 
+            color: #FFD700; 
+            text-shadow: 0 0 20px #FFD700; 
+        }
+        
+        .btn { 
+            width: 190px; 
+            padding: 12px; 
+            background: linear-gradient(135deg, #00ff88, #00b359); 
+            color: #000; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-align: center; 
+            box-shadow: 0 4px 10px rgba(0,255,136,0.3);
+            touch-action: manipulation;
+            z-index: 40;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-secondary { background: #444; color: #fff; box-shadow: none; }
+        .btn-gold { background: linear-gradient(135deg, #FF9800, #F57C00); color: #fff; box-shadow: 0 4px 10px rgba(255,152,0,0.3); }
+        .btn-rank { background: linear-gradient(135deg, #9C27B0, #7B1FA2); color: #fff; box-shadow: 0 4px 10px rgba(156,39,176,0.3); }
+        .btn-skin { background: linear-gradient(135deg, #00bcd4, #00838f); color: #fff; box-shadow: 0 4px 10px rgba(0,188,212,0.3); }
+        .btn-info { background: linear-gradient(135deg, #3f51b5, #1a237e); color: #fff; box-shadow: 0 4px 10px rgba(63,81,181,0.3); }
+        .btn-danger { background: #f44336; color: #fff; box-shadow: none; }
+
+        .modal { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: #12121c; 
+            display: none; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 10px; 
+            gap: 8px; 
+            z-index: 30; 
+            overflow-y: auto;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 280px;
+            background: #1a1a26;
+            border: 1px solid #4CAF50;
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-field { 
+            width: 100%; 
+            padding: 9px; 
+            border-radius: 6px; 
+            border: 1px solid #555; 
+            background: #2a2a3a; 
+            color: white; 
+            font-size: 14px; 
+            outline: none;
+        }
+
+        .controls { display: grid; grid-template-columns: repeat(3, 55px); gap: 6px; margin-top: 15px; }
+        .ctrl-btn { 
+            width: 55px; height: 55px; 
+            background: #1e1e2d; 
+            border: 1px solid #00ff88; 
+            border-radius: 12px; 
+            color: #00ff88; 
+            font-size: 22px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            touch-action: manipulation;
+        }
+        .ctrl-btn:active { background: #00ff88; color: #000; }
+        .empty-cell { visibility: hidden; }
+
+        .info-card { background: #222; padding: 10px; border-radius: 10px; width: 95%; text-align: center; border: 1px solid #4CAF50; font-size: 12px; }
+        .shop-card { background: #222; padding: 12px; border-radius: 10px; width: 95%; text-align: center; border: 1px solid #FF9800; }
+        .guide-box { 
+            background: #1a1a28; 
+            border: 1px solid #3f51b5; 
+            border-radius: 8px; 
+            padding: 10px; 
+            width: 95%; 
+            max-height: 180px; 
+            overflow-y: auto; 
+            font-size: 11px; 
+            line-height: 1.5; 
+            text-align: left; 
+        }
+        .guide-box h4 { color: #00ff88; margin-top: 6px; margin-bottom: 2px; font-size: 12px; }
+        .shop-btn { padding: 8px 15px; background: #FF9800; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; margin-top: 6px; touch-action: manipulation; }
+        .shop-btn:disabled { background: #555; cursor: not-allowed; }
+        .rank-item { width: 92%; background: #2a2a3a; border: 1px solid #9C27B0; padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        
+        .skin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 95%; margin-top: 5px; }
+        .skin-card { background: #1a1a26; border: 1px solid #444; border-radius: 8px; padding: 8px; text-align: center; font-size: 11px; cursor: pointer; touch-action: manipulation; }
+        .skin-card.selected { border: 2px solid #00ff88; background: rgba(0,255,136,0.1); }
+
+        @keyframes rainbowGlow {
+            0% { color: #ff0000; text-shadow: 0 0 8px #ff0000; }
+            20% { color: #ff9900; text-shadow: 0 0 8px #ff9900; }
+            40% { color: #33cc33; text-shadow: 0 0 8px #33cc33; }
+            60% { color: #00ffff; text-shadow: 0 0 8px #00ffff; }
+            80% { color: #cc33ff; text-shadow: 0 0 8px #cc33ff; }
+            100% { color: #ff0000; text-shadow: 0 0 8px #ff0000; }
+        }
+        .rainbow-text { animation: rainbowGlow 2s infinite linear; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">빠박 스네이크 <span style="font-size:11px; color:#aaa;">v35.6</span></div>
+        <div id="userBadge" class="user-badge" id="badgeClickBtn">🔑 로그인 필요</div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="320" height="320"></canvas>
+
+        <!-- 메인 메뉴 -->
+        <div id="mainMenu" class="overlay" style="display:none;">
+            <button class="btn" id="btnGameStart">게임 시작</button>
+            <button class="btn btn-gold" id="btnShopOpen">음식 수 강화 🍎</button>
+            <button class="btn btn-skin" id="btnSkinOpen">스킨 상점 🐍</button>
+            <button class="btn btn-rank" id="btnRankOpen">🏆 랭킹 (TOP 5)</button>
+            <button class="btn btn-info" id="btnGuideOpen">📖 게임 설명서</button>
+            <button class="btn btn-secondary" id="btnProfileOpen">내 정보 & 계정 전환</button>
+        </div>
+
+        <!-- 3초 카운트다운 -->
+        <div id="countdownOverlay" class="countdown-overlay">
+            <div id="countdownText" class="countdown-text">3</div>
+        </div>
+
+        <!-- 📖 게임 설명서 모달 -->
+        <div id="guideModal" class="modal">
+            <h3 style="color:#00ff88; font-size:15px;">📖 빠박 스네이크 설명서</h3>
+            <div class="guide-box">
+                <h4>☁️ 계정 시스템</h4>
+                • 등록하신 아이디와 비밀번호로 안전하게 계정이 보호됩니다.<br>
+                
+                <h4>🍎 플레이 규칙</h4>
+                • ⏱️ **음식은 10초가 지나면 다른 위치로 이동합니다!**<br>
+                • **Lv.16부터 맵 확장 및 점수 폭등!**<br>
+                • 🔴 일반 사과 (+10점) / 🟡 황금 사과 (+50점) / ⚫ 폭탄 (-30점)
+            </div>
+            <button class="btn btn-secondary" id="btnGuideClose" style="width:180px; padding:8px; margin-top:5px;">닫기</button>
+        </div>
+
+        <!-- 로그인 / 회원가입 화면 (접속시 자동 오픈) -->
+        <div id="authModal" class="modal" style="display:flex;">
+            <div style="font-size:15px; color:#00ff88; font-weight:bold; margin-bottom:2px;">🔐 계정 관리</div>
+            
+            <div class="auth-container">
+                <div style="font-size:12px; color:#4CAF50; font-weight:bold;">기존 계정 로그인</div>
+                <input type="text" id="loginId" class="input-field" placeholder="아이디 입력" autocomplete="off" autocapitalize="none">
+                <input type="password" id="loginPw" class="input-field" placeholder="비밀번호 입력" autocomplete="off">
+                <button type="button" class="btn" id="btnLoginAction" style="width:100%; padding:9px; font-size:13px;">로그인하기</button>
+            </div>
+
+            <div class="auth-container" style="border-color:#FF9800;">
+                <div style="font-size:12px; color:#FF9800; font-weight:bold;">신규 회원가입</div>
+                <input type="text" id="regId" class="input-field" placeholder="사용할 아이디" autocomplete="off" autocapitalize="none">
+                <input type="password" id="regPw" class="input-field" placeholder="사용할 비밀번호" autocomplete="off">
+                <button type="button" class="btn btn-gold" id="btnRegisterAction" style="width:100%; padding:9px; font-size:13px;">회원가입하기</button>
+            </div>
+
+            <button type="button" class="btn btn-secondary" id="authCloseBtn" style="width:auto; padding:6px 15px; margin-top:2px; display:none;">돌아가기</button>
+        </div>
+
+        <!-- 상점 모달 -->
+        <div id="shopModal" class="modal">
+            <div class="shop-card">
+                <h3 style="color:#FFD700; margin-bottom:5px;">음식 개수 강화 🍎</h3>
+                <p style="font-size:12px; color:#ccc; margin-bottom:8px;">보유 골드: <span id="shopGold" style="color:#FFD700; font-weight:bold;">0</span> 🪙</p>
+                <div style="background:#111; padding:8px; border-radius:8px; margin-bottom:8px;">
+                    <div style="font-size:13px;">동시 음식 생성: <span id="foodLevelText" style="color:#4CAF50; font-weight:bold;">Lv.1 (1개)</span></div>
+                    <div id="nextLevelDesc" style="font-size:10px; color:#aaa; margin-top:3px;">다음 레벨: 화면에 음식 2개 동시 등장</div>
+                </div>
+                <button class="shop-btn" id="btnUpgradeFood">강화하기 (100 G)</button>
+            </div>
+            <button class="btn btn-gold" id="btnCouponUse" style="font-size:12px; width:auto; padding:6px 12px;">🎁 쿠폰 입력</button>
+            <button class="btn btn-secondary" id="btnShopClose" style="width:180px; padding:8px;">닫기</button>
+        </div>
+
+        <!-- 스킨 상점 모달 -->
+        <div id="skinModal" class="modal">
+            <h3 style="color:#00bcd4; margin-bottom:2px;">스킨 상점 🐍</h3>
+            <div class="skin-grid">
+                <div id="skinCard_default" class="skin-card selected" data-skin="default">
+                    <div style="color:#00ff88; font-weight:bold;">에메랄드 (기본)</div>
+                    <div style="color:#aaa;">보유중</div>
+                </div>
+                <div id="skinCard_cyber" class="skin-card" data-skin="cyber">
+                    <div style="color:#00d2ff; font-weight:bold;">사이버 블루</div>
+                    <div id="skinStatus_cyber" style="color:#FF9800;">500 G</div>
+                </div>
+                <div id="skinCard_dragon" class="skin-card" data-skin="dragon">
+                    <div style="color:#FFD700; font-weight:bold;">황금 드래곤</div>
+                    <div id="skinStatus_dragon" style="color:#FF9800;">1,500 G</div>
+                </div>
+                <div id="skinCard_rainbow" class="skin-card" data-skin="rainbow">
+                    <div class="rainbow-text">네온 레인보우 ✨</div>
+                    <div id="skinStatus_rainbow" style="color:#FF9800;">3,000 G</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" id="btnSkinClose" style="width:180px; padding:8px; margin-top:5px;">닫기</button>
+        </div>
+
+        <!-- TOP 5 랭킹 모달 -->
+        <div id="rankModal" class="modal">
+            <h3 style="color:#FFD700; margin-bottom:3px;">🏆 명예의 전당 (TOP 5)</h3>
+            <div class="rank-item"><div>🥇 <span id="rank1User" style="color:#FFD700; font-weight:bold;">기록 없음</span></div><div><span id="rank1Score" style="color:#4CAF50; font-weight:bold;">0</span> 점</div></div>
+            <div class="rank-item"><div>🥈 <span id="rank2User" style="color:#C0C0C0; font-weight:bold;">기록 없음</span></div><div><span id="rank2Score" style="color:#4CAF50; font-weight:bold;">0</span> 점</div></div>
+            <div class="rank-item"><div>🥉 <span id="rank3User" style="color:#CD7F32; font-weight:bold;">기록 없음</span></div><div><span id="rank3Score" style="color:#4CAF50; font-weight:bold;">0</span> 점</div></div>
+            <div class="rank-item"><div>4등 <span id="rank4User" style="color:#aaa; font-weight:bold;">기록 없음</span></div><div><span id="rank4Score" style="color:#4CAF50; font-weight:bold;">0</span> 점</div></div>
+            <div class="rank-item"><div>5등 <span id="rank5User" style="color:#aaa; font-weight:bold;">기록 없음</span></div><div><span id="rank5Score" style="color:#4CAF50; font-weight:bold;">0</span> 점</div></div>
+            <button class="btn btn-secondary" id="btnRankClose" style="width:180px; padding:8px; margin-top:5px;">닫기</button>
+        </div>
+
+        <!-- 내 정보 모달 -->
+        <div id="profileModal" class="modal">
+            <div class="info-card">
+                <h3 style="color:#FFD700; margin-bottom:3px;">내 정보</h3>
+                <p id="profileUser" style="font-weight:bold; margin-bottom:5px;">게스트 계정</p>
+                <p>보유 골드: <span id="profileGold" style="color:#FFD700;">0</span> 🪙</p>
+                <p>음식 동시 생성: <span id="profileFoodCount" style="color:#FF9800;">1</span>개</p>
+                <p>최고 점수: <span id="profileHighScore" style="color:#4CAF50;">0</span>점</p>
+            </div>
+            <button class="btn btn-gold" id="btnProfileCoupon" style="font-size:11px; width:auto; padding:6px 12px;">🎁 쿠폰 입력</button>
+            <button class="btn btn-danger" id="btnProfileLogout" style="width:180px; padding:8px; font-size:12px;">로그아웃 (다른 계정 전환)</button>
+            <button class="btn btn-secondary" id="btnProfileClose" style="width:180px; padding:8px;">닫기</button>
+        </div>
+    </div>
+
+    <!-- 모바일 방향키 -->
+    <div class="controls">
+        <div class="empty-cell"></div>
+        <div class="ctrl-btn" id="dirUp">▲</div>
+        <div class="empty-cell"></div>
+        <div class="ctrl-btn" id="dirLeft">◀</div>
+        <div class="ctrl-btn" id="dirDown">▼</div>
+        <div class="ctrl-btn" id="dirRight">▶</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let tileCount = 20; 
+        let gridSize = 16; 
+
+        let snake = [{x: 10, y: 10}];
+        let foods = [];
+        let particles = [];
+        let dx = 0, dy = 0;
+        let score = 0;
+        let gameInterval = null;
+
+        const CURRENT_USER_KEY = 'v36_current_user';
+        const USERS_DB_KEY = 'v36_users_database';
+
+        let currentUser = null;
+        let currentUserData = {
+            pw: '',
+            gold: 0,
+            foodLevel: 1,
+            highScore: 0,
+            usedCoupons: [],
+            skins: ['default'],
+            equippedSkin: 'default'
+        };
+
+        function getAllUsers() {
+            try {
+                const data = localStorage.getItem(USERS_DB_KEY);
+                return data ? JSON.parse(data) : {};
+            } catch(e) { return {}; }
+        }
+
+        function saveAllUsers(usersObj) {
+            localStorage.setItem(USERS_DB_KEY, JSON.stringify(usersObj));
+        }
+
+        const upgradeCosts = [
+            0, 100, 200, 400, 700, 1100, 1600, 2200, 3000, 4000, 5200, 6500, 8000, 9800, 12000, 
+            15000, 18500, 22500, 27000, 32000, 38000, 45000, 53000, 62000, 72000, 83000, 95000, 108000, 122000, 140000
+        ];
+
+        function getFoodCountByLevel(level) {
+            if (level <= 15) return level;
+            if (level === 16) return 4;
+            if (level === 17) return 5;
+            return 5 + (level - 17);
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                if (type === 'eat') {
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'gold') {
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.18);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.18);
+                } else if (type === 'bomb') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'over') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+                }
+            } catch(e) {}
+        }
+
+        function getUserData() {
+            return currentUserData;
+        }
+
+        function saveUserData(newData) {
+            if (!currentUser) return;
+            currentUserData = { ...currentUserData, ...newData };
+            const users = getAllUsers();
+            users[currentUser] = currentUserData;
+            saveAllUsers(users);
+        }
+
+        function initAutoLogin() {
+            const savedUser = localStorage.getItem(CURRENT_USER_KEY);
+            const users = getAllUsers();
+            if (savedUser && users[savedUser]) {
+                currentUser = savedUser;
+                currentUserData = users[savedUser];
+                updateUI();
+                document.getElementById('authModal').style.display = 'none';
+                document.getElementById('mainMenu').style.display = 'flex';
+            } else {
+                updateUI();
+                openAuthModal();
+            }
+        }
+
+        function formatUser(name) {
+            if (!name) return '알 수 없음';
+            return name;
+        }
+
+        function updateUI() {
+            const badge = document.getElementById('userBadge');
+            if (currentUser) {
+                badge.innerText = `👤 ${formatUser(currentUser)}`;
+                badge.style.borderColor = '#4CAF50';
+            } else {
+                badge.innerText = '🔑 로그인 필요';
+                badge.style.borderColor = '#FF9800';
+            }
+        }
+
+        function handleStartClick() {
+            if (!currentUser) {
+                openAuthModal();
+            } else {
+                startCountdown();
+            }
+        }
+
+        function startCountdown() {
+            document.getElementById('mainMenu').style.display = 'none';
+            const overlay = document.getElementById('countdownOverlay');
+            const text = document.getElementById('countdownText');
+            overlay.style.display = 'flex';
+
+            let count = 3;
+            text.innerText = count;
+
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    text.innerText = count;
+                } else if (count === 0) {
+                    text.innerText = 'GO!';
+                } else {
+                    clearInterval(timer);
+                    overlay.style.display = 'none';
+                    initGame();
+                }
+            }, 800);
+        }
+
+        function initGame() {
+            const userData = getUserData();
+            const currentLv = userData.foodLevel || 1;
+
+            if (currentLv >= 16) {
+                tileCount = 24;
+                gridSize = Math.floor(320 / tileCount);
+            } else {
+                tileCount = 20;
+                gridSize = 16;
+            }
+
+            snake = [{x: Math.floor(tileCount/2), y: Math.floor(tileCount/2)}];
+            dx = 1; dy = 0;
+            score = 0;
+            foods = [];
+            particles = [];
+            
+            const foodCount = getFoodCountByLevel(currentLv);
+            for (let i = 0; i < foodCount; i++) {
+                spawnFood();
+            }
+
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 140);
+        }
+
+        function spawnFood() {
+            let newFood;
+            let collision;
+            do {
+                collision = false;
+                const rand = Math.random();
+                let type = 'normal'; 
+                if (rand > 0.82 && rand <= 0.93) type = 'golden'; 
+                else if (rand > 0.93) type = 'bomb'; 
+
+                newFood = {
+                    x: Math.floor(Math.random() * tileCount),
+                    y: Math.floor(Math.random() * tileCount),
+                    type: type,
+                    spawnTime: Date.now()
+                };
+                if (snake.some(s => s.x === newFood.x && s.y === newFood.y)) collision = true;
+                if (foods.some(f => f.x === newFood.x && f.y === newFood.y)) collision = true;
+            } while (collision);
+
+            foods.push(newFood);
+        }
+
+        function addParticles(x, y, color) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x * gridSize + gridSize/2,
+                    y: y * gridSize + gridSize/2,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 1.0,
+                    color: color
+                });
+            }
+        }
+
+        function gameLoop() {
+            const now = Date.now();
+            for (let i = foods.length - 1; i >= 0; i--) {
+                if (now - foods[i].spawnTime >= 10000) {
+                    foods.splice(i, 1);
+                    spawnFood();
+                }
+            }
+
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount || checkCollision(head)) {
+                playSound('over');
+                clearInterval(gameInterval);
+                finishGame(score);
+                return;
+            }
+
+            snake.unshift(head);
+
+            let eatenIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
+            if (eatenIndex !== -1) {
+                const eaten = foods[eatenIndex];
+                const userData = getUserData();
+                const currentLv = userData.foodLevel || 1;
+
+                if (eaten.type === 'normal') {
+                    score += (currentLv >= 16 ? 30 : 10);
+                    playSound('eat');
+                    addParticles(head.x, head.y, '#ff5252');
+                } else if (eaten.type === 'golden') {
+                    score += (currentLv >= 16 ? 150 : 50);
+                    playSound('gold');
+                    addParticles(head.x, head.y, '#ffd700');
+                } else if (eaten.type === 'bomb') {
+                    score = Math.max(0, score - 30);
+                    playSound('bomb');
+                    addParticles(head.x, head.y, '#555555');
+                    if (snake.length > 2) snake.pop();
+                }
+
+                foods.splice(eatenIndex, 1);
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+
+            draw();
+        }
+
+        function checkCollision(head) {
+            return snake.some(segment => segment.x === head.x && segment.y === head.y);
+        }
+
+        function finishGame(finalScore) {
+            const userData = getUserData();
+            let newGold = (userData.gold || 0) + finalScore;
+
+            let isNewRecord = false;
+            let newHigh = userData.highScore || 0;
+            if (finalScore > newHigh) {
+                newHigh = finalScore;
+                isNewRecord = true;
+            }
+            saveUserData({ gold: newGold, highScore: newHigh });
+
+            alert(`게임 오버!\n이번 점수: ${finalScore}점\n획득 골드: +${finalScore}🪙${isNewRecord ? '\n✨ 최고 기록 갱신!' : ''}`);
+            document.getElementById('mainMenu').style.display = 'flex';
+        }
+
+        function draw() {
+            ctx.fillStyle = '#05050d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0); ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize); ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            particles.forEach((p, idx) => {
+                p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+                if (p.life <= 0) particles.splice(idx, 1);
+                else {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.fillRect(p.x, p.y, 3, 3);
+                    ctx.globalAlpha = 1.0;
+                }
+            });
+
+            foods.forEach(f => {
+                if (f.type === 'normal') ctx.fillStyle = '#FF5252';
+                else if (f.type === 'golden') ctx.fillStyle = '#FFD700';
+                else if (f.type === 'bomb') ctx.fillStyle = '#888888';
+
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 8;
+                ctx.fillRect(f.x * gridSize + 1, f.y * gridSize + 1, gridSize - 2, gridSize - 2);
+                ctx.shadowBlur = 0;
+            });
+
+            const userData = getUserData();
+            const skin = userData.equippedSkin || 'default';
+            
+            snake.forEach((segment, index) => {
+                if (skin === 'cyber') {
+                    ctx.fillStyle = index === 0 ? '#00e5ff' : '#00838f';
+                } else if (skin === 'dragon') {
+                    ctx.fillStyle = index === 0 ? '#fff176' : '#f57c00';
+                } else if (skin === 'rainbow') {
+                    const hue = (index * 25 + Date.now()/15) % 360;
+                    ctx.fillStyle = `hsl(${hue}, 100%, 60%)`;
+                } else {
+                    ctx.fillStyle = index === 0 ? '#81C784' : '#4CAF50';
+                }
+
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = index === 0 ? 12 : 5;
+                ctx.fillRect(segment.x * gridSize + 1, segment.y * gridSize + 1, gridSize - 2, gridSize - 2);
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function changeDir(dir) {
+            if (dir === 'UP' && dy === 0) { dx = 0; dy = -1; }
+            if (dir === 'DOWN' && dy === 0) { dx = 0; dy = 1; }
+            if (dir === 'LEFT' && dx === 0) { dx = -1; dy = 0; }
+            if (dir === 'RIGHT' && dx === 0) { dx = 1; dy = 0; }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w') changeDir('UP');
+            if (e.key === 'ArrowDown' || e.key === 's') changeDir('DOWN');
+            if (e.key === 'ArrowLeft' || e.key === 'a') changeDir('LEFT');
+            if (e.key === 'ArrowRight' || e.key === 'd') changeDir('RIGHT');
+        });
+
+        function openGuideModal() { document.getElementById('guideModal').style.display = 'flex'; }
+        function closeGuideModal() { document.getElementById('guideModal').style.display = 'none'; }
+
+        function openAuthModal() {
+            document.getElementById('loginId').value = '';
+            document.getElementById('loginPw').value = '';
+            document.getElementById('regId').value = '';
+            document.getElementById('regPw').value = '';
+            if (currentUser) {
+                document.getElementById('authCloseBtn').style.display = 'block';
+            } else {
+                document.getElementById('authCloseBtn').style.display = 'none';
+            }
+            document.getElementById('authModal').style.display = 'flex';
+        }
+
+        function closeAuthModal() { 
+            if (!currentUser) {
+                alert('로그인 또는 회원가입을 완료해야 게임을 이용하실 수 있습니다!');
+                return;
+            }
+            document.getElementById('authModal').style.display = 'none'; 
+        }
+
+        function handleLogin() {
+            const id = document.getElementById('loginId').value.trim();
+            const pw = document.getElementById('loginPw').value.trim();
+            if (!id || !pw) return alert('아이디와 비밀번호를 입력해주세요.');
+
+            const users = getAllUsers();
+            if (users[id]) {
+                if (users[id].pw === pw) {
+                    currentUser = id;
+                    currentUserData = users[id];
+                    localStorage.setItem(CURRENT_USER_KEY, id);
+                    document.getElementById('authCloseBtn').style.display = 'block';
+                    document.getElementById('authModal').style.display = 'none';
+                    document.getElementById('mainMenu').style.display = 'flex';
+                    updateUI();
+                    alert('🎉 로그인 성공!');
+                } else {
+                    alert('비밀번호가 올바르지 않습니다.');
+                }
+            } else {
+                alert('존재하지 않는 아이디입니다. 회원가입을 먼저 진행해 주세요.');
+            }
+        }
+
+        function handleRegister() {
+            const id = document.getElementById('regId').value.trim();
+            const pw = document.getElementById('regPw').value.trim();
+            if (!id || !pw) return alert('사용할 아이디와 비밀번호를 입력해주세요.');
+
+            const users = getAllUsers();
+            if (users[id]) {
+                alert('이미 존재하는 아이디입니다.');
+            } else {
+                users[id] = {
+                    pw: pw,
+                    highScore: 0,
+                    gold: 0,
+                    foodLevel: 1,
+                    usedCoupons: [],
+                    skins: ['default'],
+                    equippedSkin: 'default'
+                };
+                saveAllUsers(users);
+
+                currentUser = id;
+                currentUserData = users[id];
+                localStorage.setItem(CURRENT_USER_KEY, id);
+                document.getElementById('authCloseBtn').style.display = 'block';
+                document.getElementById('authModal').style.display = 'none';
+                document.getElementById('mainMenu').style.display = 'flex';
+                updateUI();
+                alert('🎉 회원가입 및 로그인 완료!');
+            }
+        }
+
+        function openShop() {
+            if (!currentUser) {
+                alert('상점을 이용하려면 먼저 로그인해 주세요!');
+                openAuthModal();
+                return;
+            }
+            updateShopUI();
+            document.getElementById('shopModal').style.display = 'flex';
+        }
+
+        function updateShopUI() {
+            const userData = getUserData();
+            const currentLv = userData.foodLevel || 1;
+            document.getElementById('shopGold').innerText = userData.gold || 0;
+            document.getElementById('foodLevelText').innerText = `Lv.${currentLv} (${getFoodCountByLevel(currentLv)}개)`;
+
+            const btn = document.getElementById('btnUpgradeFood');
+            const desc = document.getElementById('nextLevelDesc');
+
+            if (currentLv >= 30) {
+                desc.innerText = '최대 레벨에 도달했습니다! (MAX)';
+                btn.innerText = '강화 완료';
+                btn.disabled = true;
+            } else {
+                const cost = upgradeCosts[currentLv];
+                desc.innerText = `다음 레벨: 동시 음식 ${getFoodCountByLevel(currentLv + 1)}개 생성`;
+                btn.innerText = `강화하기 (${cost.toLocaleString()} G)`;
+                btn.disabled = (userData.gold || 0) < cost;
+            }
+        }
+
+        function upgradeFood() {
+            const userData = getUserData();
+            const currentLv = userData.foodLevel || 1;
+
+            if (currentLv >= 30) return;
+            const cost = upgradeCosts[currentLv];
+            const currentGold = userData.gold || 0;
+
+            if (currentGold >= cost) {
+                saveUserData({
+                    gold: currentGold - cost,
+                    foodLevel: currentLv + 1
+                });
+                alert(`강화 성공! 이제 동시 음식 생성 수가 ${getFoodCountByLevel(userData.foodLevel)}개가 됩니다!`);
+                updateShopUI();
+            } else {
+                alert('골드가 부족합니다!');
+            }
+        }
+
+        function closeShopModal() { document.getElementById('shopModal').style.display = 'none'; }
+
+        function openSkinShop() {
+            if (!currentUser) {
+                alert('스킨 상점을 이용하려면 로그인해 주세요!');
+                openAuthModal();
+                return;
+            }
+            updateSkinUI();
+            document.getElementById('skinModal').style.display = 'flex';
+        }
+
+        function updateSkinUI() {
+            const userData = getUserData();
+            const owned = userData.skins || ['default'];
+            const equipped = userData.equippedSkin || 'default';
+
+            ['default', 'cyber', 'dragon', 'rainbow'].forEach(s => {
+                const card = document.getElementById(`skinCard_${s}`);
+                if (card) {
+                    if (equipped === s) card.className = 'skin-card selected';
+                    else card.className = 'skin-card';
+
+                    const status = document.getElementById(`skinStatus_${s}`);
+                    if (status) {
+                        if (owned.includes(s)) status.innerText = '보유중';
+                    }
+                }
+            });
+        }
+
+        function selectSkin(skinKey) {
+            const userData = getUserData();
+            let owned = userData.skins || ['default'];
+            const prices = { cyber: 500, dragon: 1500, rainbow: 3000 };
+
+            if (owned.includes(skinKey)) {
+                saveUserData({ equippedSkin: skinKey });
+                updateSkinUI();
+            } else {
+                const price = prices[skinKey];
+                const currentGold = userData.gold || 0;
+                if (currentGold >= price) {
+                    if (confirm(`이 스킨을 ${price} 골드에 구매하시겠습니까?`)) {
+                        owned.push(skinKey);
+                        saveUserData({
+                            gold: currentGold - price,
+                            skins: owned,
+                            equippedSkin: skinKey
+                        });
+                        alert('스킨 구매 및 장착 완료!');
+                        updateSkinUI();
+                    }
+                } else {
+                    alert('골드가 부족합니다!');
+                }
+            }
+        }
+
+        function closeSkinModal() { document.getElementById('skinModal').style.display = 'none'; }
+
+        function useCoupon() {
+            if (!currentUser) {
+                alert('쿠폰을 사용하려면 로그인해 주세요!');
+                openAuthModal();
+                return;
+            }
+
+            const inputCode = prompt('쿠폰 코드를 입력하세요:');
+            if (!inputCode) return;
+
+            const cleanCode = inputCode.trim().toLowerCase();
+            const userData = getUserData();
+            let used = userData.usedCoupons || [];
+
+            if (cleanCode === 'babag') {
+                if (used.includes('babag')) {
+                    alert('이미 사용된 쿠폰입니다.');
+                    return;
+                }
+                used.push('babag');
+                saveUserData({
+                    gold: (userData.gold || 0) + 1000,
+                    usedCoupons: used
+                });
+                alert('🎉 쿠폰 사용 성공!\n1,000 골드가 지급되었습니다!');
+                updateShopUI();
+                openProfile();
+            } else if (cleanCode === '711') {
+                if (used.includes('711')) {
+                    alert('이미 사용된 쿠폰입니다.');
+                    return;
+                }
+                used.push('711');
+                saveUserData({
+                    gold: (userData.gold || 0) + 7110,
+                    usedCoupons: used
+                });
+                alert('🎉 쿠폰 사용 성공!\n7,110 골드가 지급되었습니다!');
+                updateShopUI();
+                openProfile();
+            } else {
+                alert('유효하지 않은 쿠폰 코드입니다.');
+            }
+        }
+
+        function openRankings() {
+            const users = getAllUsers();
+            let rankList = [];
+            for (let username in users) {
+                let uScore = users[username].highScore || 0;
+                if (uScore > 0) {
+                    rankList.push({ user: username, score: uScore });
+                }
+            }
+
+            rankList.sort((a, b) => b.score - a.score);
+
+            for (let i = 0; i < 5; i++) {
+                const userEl = document.getElementById(`rank${i+1}User`);
+                const scoreEl = document.getElementById(`rank${i+1}Score`);
+                if (rankList[i]) {
+                    userEl.innerText = formatUser(rankList[i].user);
+                    scoreEl.innerText = rankList[i].score;
+                } else {
+                    userEl.innerText = '기록 없음';
+                    scoreEl.innerText = 0;
+                }
+            }
+            document.getElementById('rankModal').style.display = 'flex';
+        }
+
+        function closeRankModal() { document.getElementById('rankModal').style.display = 'none'; }
+
+        function openProfile() {
+            const userData = getUserData();
+            document.getElementById('profileUser').innerText = currentUser ? formatUser(currentUser) : '게스트 계정';
+            document.getElementById('profileGold').innerText = userData.gold || 0;
+            document.getElementById('profileFoodCount').innerText = `${userData.foodLevel || 1} (${getFoodCountByLevel(userData.foodLevel || 1)}개)`;
+            document.getElementById('profileHighScore').innerText = userData.highScore || 0;
+            document.getElementById('profileModal').style.display = 'flex';
+        }
+
+        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
+
+        function logout() {
+            localStorage.removeItem(CURRENT_USER_KEY);
+            currentUser = null;
+            currentUserData = { pw: '', gold: 0, foodLevel: 1, highScore: 0, usedCoupons: [], skins: ['default'], equippedSkin: 'default' };
+            closeProfileModal();
+            document.getElementById('mainMenu').style.display = 'none';
+            updateUI();
+            alert('로그아웃 되었습니다.');
+            openAuthModal();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btnLoginAction').addEventListener('click', handleLogin);
+            document.getElementById('btnRegisterAction').addEventListener('click', handleRegister);
+            document.getElementById('authCloseBtn').addEventListener('click', closeAuthModal);
+            document.getElementById('userBadge').addEventListener('click', openAuthModal);
+
+            document.getElementById('btnGameStart').addEventListener('click', handleStartClick);
+            document.getElementById('btnShopOpen').addEventListener('click', openShop);
+            document.getElementById('btnSkinOpen').addEventListener('click', openSkinShop);
+            document.getElementById('btnRankOpen').addEventListener('click', openRankings);
+            document.getElementById('btnGuideOpen').addEventListener('click', openGuideModal);
+            document.getElementById('btnProfileOpen').addEventListener('click', openProfile);
+
+            document.getElementById('btnGuideClose').addEventListener('click', closeGuideModal);
+            document.getElementById('btnUpgradeFood').addEventListener('click', upgradeFood);
+            document.getElementById('btnCouponUse').addEventListener('click', useCoupon);
+            document.getElementById('btnShopClose').addEventListener('click', closeShopModal);
+            document.getElementById('btnSkinClose').addEventListener('click', closeSkinModal);
+            document.getElementById('btnRankClose').addEventListener('click', closeRankModal);
+            document.getElementById('btnProfileCoupon').addEventListener('click', useCoupon);
+            document.getElementById('btnProfileLogout').addEventListener('click', logout);
+            document.getElementById('btnProfileClose').addEventListener('click', closeProfileModal);
+
+            document.querySelectorAll('.skin-card').forEach(card => {
+                card.addEventListener('click', () => selectSkin(card.getAttribute('data-skin')));
+            });
+
+            document.getElementById('dirUp').addEventListener('click', () => changeDir('UP'));
+            document.getElementById('dirLeft').addEventListener('click', () => changeDir('LEFT'));
+            document.getElementById('dirDown').addEventListener('click', () => changeDir('DOWN'));
+            document.getElementById('dirRight').addEventListener('click', () => changeDir('RIGHT'));
+
+            initAutoLogin();
+            draw();
+        });
+    </script>
+</body>
+</html>
